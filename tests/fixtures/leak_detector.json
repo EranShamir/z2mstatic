@@ -1,0 +1,66 @@
+{
+    "description": "Water leak detector",
+    "exposes": [
+        {
+            "access": 1,
+            "description": "Indicates whether the device detected a water leak",
+            "label": "Water leak",
+            "name": "water_leak",
+            "property": "water_leak",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Indicates if the battery of this device is almost empty",
+            "label": "Battery low",
+            "name": "battery_low",
+            "property": "battery_low",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Remaining battery in %, can take up to 24 hours before reported",
+            "label": "Battery",
+            "name": "battery",
+            "property": "battery",
+            "type": "numeric",
+            "unit": "%",
+            "value_max": 100,
+            "value_min": 0
+        },
+        {
+            "access": 1,
+            "description": "Indicates whether the device is tampered",
+            "label": "Tamper",
+            "name": "tamper",
+            "property": "tamper",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Link quality (signal strength)",
+            "label": "Linkquality",
+            "name": "linkquality",
+            "property": "linkquality",
+            "type": "numeric",
+            "unit": "lqi",
+            "value_max": 255,
+            "value_min": 0
+        }
+    ],
+    "model": "TS0207_water_leak_detector",
+    "options": [],
+    "source": "native",
+    "supports_ota": false,
+    "vendor": "Tuya",
+    "version": "0.0.0"
+}

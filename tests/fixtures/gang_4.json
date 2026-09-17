@@ -1,0 +1,156 @@
+{
+    "description": "4-gang touch wall switch with curtain controls",
+    "exposes": [
+        {
+            "description": "Top-left switch",
+            "endpoint": "s1",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "s1",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_s1",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Top-right switch",
+            "endpoint": "s2",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "s2",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_s2",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Bottom-left switch",
+            "endpoint": "s3",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "s3",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_s3",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Bottom-right switch",
+            "endpoint": "s4",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "s4",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_s4",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Master switch",
+            "endpoint": "master",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "master",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_master",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Panel backlight",
+            "endpoint": "backlight",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "backlight",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_backlight",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "description": "Child lock",
+            "endpoint": "childlock",
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "endpoint": "childlock",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state_childlock",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Link quality (signal strength)",
+            "label": "Linkquality",
+            "name": "linkquality",
+            "property": "linkquality",
+            "type": "numeric",
+            "unit": "lqi",
+            "value_max": 255,
+            "value_min": 0
+        }
+    ],
+    "model": "7a5ob7xq-custom",
+    "options": [],
+    "source": "external",
+    "supports_ota": false,
+    "vendor": "Orztech",
+    "version": "0.0.0"
+}

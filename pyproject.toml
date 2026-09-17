@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools==78.1.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "z2m-static-entities"
+version = "0.2.1"
+description = "Home Assistant integration that creates static entities/devices from Zigbee2MQTT exposes, immune to Z2M-side deletions"
+requires-python = ">=3.14.2"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18,<2",
+  "pytest-homeassistant-custom-component==0.13.365",
+  "ruff==0.16.3",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "ASYNC",
+  "B",
+  "C4",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PERF",
+  "PIE",
+  "PT",
+  "PTH",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+
+[tool.mypy]
+python_version = "3.14"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_unused_ignores = true

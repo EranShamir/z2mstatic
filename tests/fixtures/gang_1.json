@@ -1,0 +1,69 @@
+{
+    "description": "1-gang Zigbee wall switch",
+    "exposes": [
+        {
+            "features": [
+                {
+                    "access": 7,
+                    "description": "On/off state of the switch",
+                    "label": "State",
+                    "name": "state",
+                    "property": "state",
+                    "type": "binary",
+                    "value_off": "OFF",
+                    "value_on": "ON",
+                    "value_toggle": "TOGGLE"
+                }
+            ],
+            "type": "switch"
+        },
+        {
+            "access": 3,
+            "description": "Panel Master On/Off",
+            "label": "Master",
+            "name": "master",
+            "property": "master",
+            "type": "binary",
+            "value_off": "OFF",
+            "value_on": "ON"
+        },
+        {
+            "access": 3,
+            "description": "Backlight",
+            "label": "Backlight",
+            "name": "backlight",
+            "property": "backlight",
+            "type": "binary",
+            "value_off": "OFF",
+            "value_on": "ON"
+        },
+        {
+            "access": 3,
+            "description": "Child Lock",
+            "label": "Childlock",
+            "name": "childlock",
+            "property": "childlock",
+            "type": "binary",
+            "value_off": "OFF",
+            "value_on": "ON"
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Link quality (signal strength)",
+            "label": "Linkquality",
+            "name": "linkquality",
+            "property": "linkquality",
+            "type": "numeric",
+            "unit": "lqi",
+            "value_max": 255,
+            "value_min": 0
+        }
+    ],
+    "model": "b0ihkhxh",
+    "options": [],
+    "source": "external",
+    "supports_ota": false,
+    "vendor": "Tuya",
+    "version": "0.0.0"
+}

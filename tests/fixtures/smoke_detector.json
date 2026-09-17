@@ -1,0 +1,84 @@
+{
+    "description": "Photoelectric smoke detector",
+    "exposes": [
+        {
+            "access": 1,
+            "description": "Indicates whether the device detected smoke",
+            "label": "Smoke",
+            "name": "smoke",
+            "property": "smoke",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Remaining battery in %, can take up to 24 hours before reported",
+            "label": "Battery",
+            "name": "battery",
+            "property": "battery",
+            "type": "numeric",
+            "unit": "%",
+            "value_max": 100,
+            "value_min": 0
+        },
+        {
+            "access": 3,
+            "description": "Silence the alarm",
+            "label": "Silence",
+            "name": "silence",
+            "property": "silence",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "description": "Indicates whether the device is being tested",
+            "label": "Test",
+            "name": "test",
+            "property": "test",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "description": "Parts per million of smoke detected",
+            "label": "Smoke concentration",
+            "name": "smoke_concentration",
+            "property": "smoke_concentration",
+            "type": "numeric",
+            "unit": "ppm"
+        },
+        {
+            "access": 1,
+            "description": "Indicates a fault with the device",
+            "label": "Device fault",
+            "name": "device_fault",
+            "property": "device_fault",
+            "type": "binary",
+            "value_off": false,
+            "value_on": true
+        },
+        {
+            "access": 1,
+            "category": "diagnostic",
+            "description": "Link quality (signal strength)",
+            "label": "Linkquality",
+            "name": "linkquality",
+            "property": "linkquality",
+            "type": "numeric",
+            "unit": "lqi",
+            "value_max": 255,
+            "value_min": 0
+        }
+    ],
+    "model": "PA-44Z",
+    "options": [],
+    "source": "native",
+    "supports_ota": false,
+    "vendor": "Tuya",
+    "version": "0.0.0"
+}
