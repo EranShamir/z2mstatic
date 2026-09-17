@@ -43,7 +43,9 @@ Home Assistant `Store` key `z2m_static_entities.registry`, version 2, contains:
       exposes, entities, first_seen, last_seen, disabled, present, state
     }
   },
-  tombstones: {<ieee>: {removed_at}}
+  tombstones: {<ieee>: {removed_at}},
+  replacements: {<physical_ieee>: <stable_logical_ieee>},
+  retired_ieees: [<physical_ieee>]
 }
 ```
 
@@ -63,6 +65,27 @@ retained and the incompatible change is logged.
 
 V1 platforms instantiate only `switch`, `binary_sensor`, and `sensor`
 descriptions. Other parsed domains remain stored for later platform support.
+
+## Device replacement
+
+The persisted device-map key remains the original logical IEEE so all entity
+unique IDs and `<ieee>|<property>` options stay stable. A replacement alias maps
+the newly paired physical IEEE to that logical key. Snapshots, state,
+availability, and commands then use the replacement's route while entities
+continue reading the original logical record.
+
+The options flow offers unavailable logical devices as sources and present,
+unmapped physical devices as targets. Replacement is atomic and rejected unless
+all existing property domains, command capability, and binary on/off contracts
+are preserved. The replacement definition may add new compatible properties.
+The old physical IEEE is persisted as retired and ignored if stale snapshots or
+hardware later reappear. Replacing the replacement later retires its physical
+IEEE while retaining the same original logical identity.
+
+Before platform setup on reload, entity and device registry rows temporarily
+created for the replacement physical IEEE are removed. Existing stable rows are
+untouched. Any light/reliable selections made against the temporary target IEEE
+are rewritten to the logical IEEE when the one-shot options action is saved.
 
 ## Entity overrides
 

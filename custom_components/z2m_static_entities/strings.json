@@ -4,7 +4,9 @@
       "single_instance_allowed": "Only one Z2M Static Entities instance can be configured."
     },
     "error": {
-      "base_topics_required": "Enter at least one Zigbee2MQTT MQTT base topic."
+      "base_topics_required": "Enter at least one Zigbee2MQTT MQTT base topic.",
+      "replacement_invalid": "The selected devices cannot be safely mapped. The old device must be unavailable, the replacement must be present, and all existing entity properties must be compatible.",
+      "replacement_pair_required": "Select both the existing device and its replacement."
     },
     "step": {
       "user": {
@@ -31,12 +33,16 @@
       "init": {
         "data": {
           "base_topics": "MQTT base topics",
+          "replace_from": "Existing unavailable device",
+          "replace_to": "Replacement device",
           "stale_days": "Days before a device is considered stale"
         },
         "data_description": {
           "base_topics": "Comma-separated Zigbee2MQTT base topics.",
           "light_entities": "Selected binary controls are created as native light entities instead of switches.",
           "reliable_entities": "Selected idempotent controls retry until a fresh matching device state is received.",
+          "replace_from": "The selected device keeps its stable Home Assistant identity and entity history.",
+          "replace_to": "The selected present Zigbee2MQTT device takes over MQTT state and commands. This action is applied once when the form is saved.",
           "restore_devices": "Selected IEEE addresses may be discovered again from Zigbee2MQTT.",
           "stale_days": "A warning Repair will be created after this many days without device state."
         },

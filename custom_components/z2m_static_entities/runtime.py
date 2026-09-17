@@ -18,6 +18,7 @@ from homeassistant.components.mqtt import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -258,7 +259,8 @@ class Z2MRuntime:
                 if (
                     isinstance(friendly_name, str)
                     and isinstance(ieee, str)
-                    and ieee in self.registry.devices
+                    and self.registry.ieee_for_route(base_topic, friendly_name)
+                    is not None
                 ):
                     await self._async_subscribe_device_route(
                         base_topic,
@@ -433,6 +435,45 @@ class Z2MRuntime:
                     f"[{description.key}]{suffix}"
                 )
         return choices
+
+    def replacement_choices(self) -> tuple[dict[str, str], dict[str, str]]:
+        """Return unavailable logical sources and present physical targets."""
+        replacement_logical_ieees = set(self.registry.replacements.values())
+        sources = {
+            ieee: f"{record.friendly_name} ({ieee})"
+            for ieee, record in self.registry.devices.items()
+            if not record.present
+        }
+        targets = {
+            ieee: f"{record.friendly_name} ({ieee})"
+            for ieee, record in self.registry.devices.items()
+            if record.present and ieee not in replacement_logical_ieees
+        }
+        return (
+            dict(sorted(sources.items(), key=lambda item: item[1].casefold())),
+            dict(sorted(targets.items(), key=lambda item: item[1].casefold())),
+        )
+
+    @callback
+    def reconcile_replacement_entities(self) -> None:
+        """Remove transient registry rows created for replacement physical IDs."""
+        entity_registry = er.async_get(self.hass)
+        entries = er.async_entries_for_config_entry(
+            entity_registry,
+            self.entry.entry_id,
+        )
+        for physical_ieee in self.registry.replacements:
+            prefix = f"{physical_ieee}_"
+            for registry_entry in entries:
+                if registry_entry.unique_id.startswith(prefix):
+                    entity_registry.async_remove(registry_entry.entity_id)
+            device_registry = dr.async_get(self.hass)
+            device = device_registry.async_get_device_by_identifier(
+                (DOMAIN, physical_ieee),
+                self.entry.entry_id,
+            )
+            if device is not None:
+                device_registry.async_remove_device(device.id)
 
     @callback
     def reconcile_entity_domains(self) -> None:

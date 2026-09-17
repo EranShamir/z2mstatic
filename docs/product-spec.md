@@ -19,6 +19,14 @@ device-removal responses, retained-message purges, and disappearance from
 - Definitions and routes persist across Home Assistant restarts. A missing
   device remains registered and unavailable until it reports again or the user
   explicitly removes it in Home Assistant.
+- An options-flow replacement action maps a present compatible physical IEEE to
+  an unavailable existing logical IEEE. Existing Home Assistant unique IDs,
+  entity IDs, metadata, history, and IEEE/property option keys remain stable;
+  MQTT state and commands use the replacement device's current route.
+- Replacement requires the old logical device to be unavailable, the target to
+  be present, and every existing entity property contract to remain compatible.
+  The retired physical IEEE is ignored if it later reappears. Replacement
+  aliases and retired IEEE addresses persist across restart.
 - New or changed exposes add supported entities without deleting historical
   entities that are no longer exposed.
 - V1 maps binary, numeric, enum, and switch-composite exposes. Supported

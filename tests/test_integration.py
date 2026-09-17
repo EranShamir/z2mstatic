@@ -17,6 +17,8 @@ from custom_components.z2m_static_entities.const import (
     CONF_BASE_TOPICS,
     CONF_LIGHT_ENTITIES,
     CONF_RELIABLE_ENTITIES,
+    CONF_REPLACE_FROM,
+    CONF_REPLACE_TO,
     CONF_STALE_DAYS,
     DOMAIN,
 )
@@ -226,3 +228,141 @@ async def test_ent_001_light_override_loads_native_light_only(
         )
         is None
     )
+
+
+async def test_reg_006_options_replacement_preserves_entity_and_new_route_state(
+    hass: HomeAssistant,
+    load_fixture: FixtureLoader,
+) -> None:
+    """REG-006: Options replacement keeps identity and adopts new MQTT state."""
+    replacement_ieee = "0x00124b0024fedcba"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_BASE_TOPICS: ["zigbee2mqtt"], CONF_STALE_DAYS: 30},
+    )
+    entry.add_to_hass(hass)
+    subscriptions: dict[str, Callable[..., Any]] = {}
+
+    async def subscribe(
+        hass_arg: HomeAssistant,
+        topic: str,
+        callback: Callable[..., Any],
+        qos: int = 0,
+        encoding: str | None = "utf-8",
+    ) -> Callable[[], None]:
+        subscriptions[topic] = callback
+        return lambda: None
+
+    definition = load_fixture("gang_1")
+    with (
+        patch(
+            "custom_components.z2m_static_entities.runtime.async_wait_for_mqtt_client",
+            new=AsyncMock(return_value=True),
+        ),
+        patch(
+            "custom_components.z2m_static_entities.runtime.mqtt.async_subscribe",
+            side_effect=subscribe,
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await subscriptions["zigbee2mqtt/bridge/devices"](
+            SimpleNamespace(
+                topic="zigbee2mqtt/bridge/devices",
+                payload=json.dumps(
+                    [
+                        {
+                            "ieee_address": IEEE,
+                            "friendly_name": "Old switch",
+                            "type": "Router",
+                            "interview_completed": True,
+                            "disabled": False,
+                            "definition": definition,
+                        }
+                    ]
+                ),
+            )
+        )
+        await hass.async_block_till_done()
+        entity_registry = er.async_get(hass)
+        stable_entity_id = entity_registry.async_get_entity_id(
+            "switch",
+            DOMAIN,
+            f"{IEEE}_state",
+        )
+        assert stable_entity_id is not None
+
+        await subscriptions["zigbee2mqtt/bridge/devices"](
+            SimpleNamespace(
+                topic="zigbee2mqtt/bridge/devices",
+                payload=json.dumps(
+                    [
+                        {
+                            "ieee_address": replacement_ieee,
+                            "friendly_name": "New switch",
+                            "type": "Router",
+                            "interview_completed": True,
+                            "disabled": False,
+                            "definition": definition,
+                        }
+                    ]
+                ),
+            )
+        )
+        await hass.async_block_till_done()
+        assert (
+            entity_registry.async_get_entity_id(
+                "switch",
+                DOMAIN,
+                f"{replacement_ieee}_state",
+            )
+            is not None
+        )
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_BASE_TOPICS: "zigbee2mqtt",
+                CONF_STALE_DAYS: 30,
+                CONF_REPLACE_FROM: IEEE,
+                CONF_REPLACE_TO: replacement_ieee,
+            },
+        )
+        assert result["type"].value == "create_entry"
+        await hass.async_block_till_done()
+
+        assert (
+            entity_registry.async_get_entity_id(
+                "switch",
+                DOMAIN,
+                f"{replacement_ieee}_state",
+            )
+            is None
+        )
+        assert (
+            entity_registry.async_get_entity_id(
+                "switch",
+                DOMAIN,
+                f"{IEEE}_state",
+            )
+            == stable_entity_id
+        )
+
+        subscriptions["zigbee2mqtt/bridge/state"](
+            SimpleNamespace(
+                topic="zigbee2mqtt/bridge/state",
+                payload="online",
+            )
+        )
+        subscriptions["zigbee2mqtt/New switch"](
+            SimpleNamespace(
+                topic="zigbee2mqtt/New switch",
+                payload='{"state":"ON"}',
+            )
+        )
+        await hass.async_block_till_done()
+
+    state = hass.states.get(stable_entity_id)
+    assert state is not None
+    assert state.state == "on"
+    assert entry.runtime_data.registry.replacements == {replacement_ieee: IEEE}

@@ -3,7 +3,7 @@
 Personal Home Assistant custom integration that creates stable entities from
 Zigbee2MQTT exposes without granting Zigbee2MQTT authority to delete them.
 
-## Current V1 support
+## Current support
 
 - One integration entry manages multiple Z2M MQTT base topics.
 - Physical devices are identified by IEEE address, so friendly-name changes and
@@ -16,6 +16,9 @@ Zigbee2MQTT exposes without granting Zigbee2MQTT authority to delete them.
 - Backlight and child-lock switches are configuration entities; master switches
   remain primary controls.
 - Definitions, routes, and last state persist across HA restarts.
+- An unavailable device can be explicitly replaced by a compatible newly
+  discovered IEEE while preserving the existing Home Assistant device/entity
+  identity, names, icons, history, and light/reliable classifications.
 - Z2M omission, removal, or retained-message purge never deletes HA entities.
 - Stale devices generate a warning under Settings > System > Repairs.
 
@@ -68,6 +71,13 @@ Removing or purging a device in Z2M only makes this integration's retained
 device unavailable. A device can be manually removed from HA after it is absent
 from all configured Z2M snapshots; that creates a tombstone. The options flow
 can explicitly restore tombstoned IEEE addresses.
+
+To replace failed hardware, first let the old device become absent from all
+configured Z2M snapshots and pair the replacement. In integration options,
+select the old device under **Existing unavailable device** and the new device
+under **Replacement device**, then save. Every existing property must have a
+compatible property on the replacement. This action is not needed when the same
+physical IEEE merely moves to another coordinator; route migration is automatic.
 
 Changing an existing control between `switch` and `light` changes its HA entity
 ID because Home Assistant does not support moving an entity ID across domains.

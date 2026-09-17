@@ -1,9 +1,11 @@
 """Tests for the persistent Z2M device registry model."""
 
 from collections.abc import Callable
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.z2m_static_entities.const import STORE_KEY, STORE_VERSION
@@ -17,11 +19,12 @@ IEEE = "0x00124b0024abcdef"
 def _device(
     definition: dict[str, Any],
     *,
+    ieee: str = IEEE,
     friendly_name: str = "Kitchen switch",
     disabled: bool = False,
 ) -> dict[str, Any]:
     return {
-        "ieee_address": IEEE,
+        "ieee_address": ieee,
         "friendly_name": friendly_name,
         "type": "Router",
         "interview_completed": True,
@@ -305,3 +308,199 @@ async def test_store_v1_migration_rebuilds_access_flags(
         entity["key"] == "historical_property"
         for entity in migrated["devices"][IEEE]["entities"]
     )
+
+
+def test_replace_device_preserves_logical_identity_and_uses_new_route(
+    load_fixture: FixtureLoader,
+) -> None:
+    """A replacement IEEE takes over the existing stable device identity."""
+    replacement_ieee = "0x00124b0024fedcba"
+    definition = load_fixture("gang_1")
+    registry = DeviceRegistry(configured_base_topics={"zigbee2mqtt"})
+    registry.apply_device_list("zigbee2mqtt", [_device(definition)])
+    registry.apply_device_list("zigbee2mqtt", [])
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            _device(
+                definition,
+                ieee=replacement_ieee,
+                friendly_name="Replacement switch",
+            )
+        ],
+    )
+    registry.devices[replacement_ieee].state = {"state": "ON"}
+
+    registry.replace_device(IEEE, replacement_ieee)
+
+    assert replacement_ieee not in registry.devices
+    record = registry.devices[IEEE]
+    assert record.ieee_address == IEEE
+    assert record.friendly_name == "Replacement switch"
+    assert record.state == {"state": "ON"}
+    assert record.entity_unique_ids == {
+        f"{IEEE}_state",
+        f"{IEEE}_master",
+        f"{IEEE}_backlight",
+        f"{IEEE}_childlock",
+        f"{IEEE}_linkquality",
+    }
+    assert registry.ieee_for_route("zigbee2mqtt", "Replacement switch") == IEEE
+    assert registry.replacements == {replacement_ieee: IEEE}
+    assert IEEE in registry.retired_ieees
+
+
+def test_replacement_alias_survives_restart_and_old_ieee_cannot_reclaim(
+    load_fixture: FixtureLoader,
+) -> None:
+    """Persisted replacement routing ignores a retired physical IEEE."""
+    replacement_ieee = "0x00124b0024fedcba"
+    definition = load_fixture("gang_1")
+    registry = DeviceRegistry()
+    registry.apply_device_list("zigbee2mqtt", [_device(definition)])
+    registry.apply_device_list("zigbee2mqtt", [])
+    registry.apply_device_list(
+        "zigbee2mqtt2",
+        [
+            _device(
+                definition,
+                ieee=replacement_ieee,
+                friendly_name="Replacement switch",
+            )
+        ],
+    )
+    registry.replace_device(IEEE, replacement_ieee)
+
+    restored = DeviceRegistry.from_dict(registry.to_dict())
+    restored.apply_device_list(
+        "zigbee2mqtt",
+        [_device(definition, friendly_name="Retired switch")],
+    )
+    restored.apply_device_list(
+        "zigbee2mqtt2",
+        [
+            _device(
+                definition,
+                ieee=replacement_ieee,
+                friendly_name="Replacement switch",
+            )
+        ],
+    )
+    seen_at = datetime(2026, 9, 17, tzinfo=UTC)
+    record = restored.note_state(
+        "zigbee2mqtt2",
+        "Replacement switch",
+        seen_at,
+        {"state": "ON"},
+    )
+
+    assert record is restored.devices[IEEE]
+    assert record.state["state"] == "ON"
+    assert record.last_seen == seen_at
+    assert restored.ieee_for_route("zigbee2mqtt", "Retired switch") is None
+    assert restored.to_dict()["replacements"] == {replacement_ieee: IEEE}
+    assert restored.to_dict()["retired_ieees"] == [IEEE]
+
+
+def test_replace_device_rejects_incompatible_properties_atomically(
+    load_fixture: FixtureLoader,
+) -> None:
+    """A replacement cannot silently drop existing entity properties."""
+    replacement_ieee = "0x00124b0024fedcba"
+    registry = DeviceRegistry()
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [_device(load_fixture("gang_3"))],
+    )
+    registry.apply_device_list("zigbee2mqtt", [])
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            _device(
+                load_fixture("gang_1"),
+                ieee=replacement_ieee,
+                friendly_name="Incompatible replacement",
+            )
+        ],
+    )
+    before = deepcopy(registry.to_dict())
+
+    with pytest.raises(ValueError, match="compatible"):
+        registry.replace_device(IEEE, replacement_ieee)
+
+    assert registry.to_dict() == before
+
+
+@pytest.mark.parametrize(
+    ("old_present", "replacement_present", "message"),
+    [
+        (True, True, "unavailable"),
+        (False, False, "present"),
+    ],
+)
+def test_replace_device_requires_absent_old_and_present_replacement(
+    load_fixture: FixtureLoader,
+    old_present: bool,
+    replacement_present: bool,
+    message: str,
+) -> None:
+    """Replacement preconditions prevent unsafe or stale remaps."""
+    replacement_ieee = "0x00124b0024fedcba"
+    definition = load_fixture("gang_1")
+    registry = DeviceRegistry()
+    registry.apply_device_list("zigbee2mqtt", [_device(definition)])
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            _device(
+                definition,
+                ieee=replacement_ieee,
+                friendly_name="Replacement switch",
+            )
+        ],
+    )
+    registry.devices[IEEE].present = old_present
+    registry.devices[replacement_ieee].present = replacement_present
+
+    with pytest.raises(ValueError, match=message):
+        registry.replace_device(IEEE, replacement_ieee)
+
+
+def test_replace_device_supports_a_later_second_replacement(
+    load_fixture: FixtureLoader,
+) -> None:
+    """A stable logical identity can move through multiple physical devices."""
+    first_replacement = "0x00124b0024fedcba"
+    second_replacement = "0x00124b0024000002"
+    definition = load_fixture("gang_1")
+    registry = DeviceRegistry()
+    registry.apply_device_list("zigbee2mqtt", [_device(definition)])
+    registry.apply_device_list("zigbee2mqtt", [])
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            _device(
+                definition,
+                ieee=first_replacement,
+                friendly_name="First replacement",
+            )
+        ],
+    )
+    registry.replace_device(IEEE, first_replacement)
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            _device(
+                definition,
+                ieee=second_replacement,
+                friendly_name="Second replacement",
+            )
+        ],
+    )
+
+    registry.replace_device(IEEE, second_replacement)
+
+    assert registry.replacements == {second_replacement: IEEE}
+    assert registry.retired_ieees == {IEEE, first_replacement}
+    assert registry.devices[IEEE].friendly_name == "Second replacement"
+    assert registry.ieee_for_route("zigbee2mqtt", "Second replacement") == IEEE

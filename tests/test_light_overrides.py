@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import (  # type: ignore[import-untyped]
     MockConfigEntry,
@@ -20,6 +21,7 @@ from custom_components.z2m_static_entities.runtime import Z2MRuntime
 
 FixtureLoader = Callable[[str], dict[str, Any]]
 IEEE = "0x00124b0024abcdef"
+REPLACEMENT_IEEE = "0x00124b0024fedcba"
 STATE_S1 = f"{IEEE}|state_s1"
 
 
@@ -138,3 +140,63 @@ def test_override_choices_include_unavailable_persisted_devices(
 
     assert f"{IEEE}|state" in choices
     assert "unavailable" in choices[f"{IEEE}|state"].lower()
+
+
+def test_replacement_choices_separate_unavailable_and_present_devices(
+    hass: HomeAssistant,
+    load_fixture: FixtureLoader,
+) -> None:
+    """Replacement options only offer safe source and target candidates."""
+    runtime, _entry = _runtime(hass, load_fixture("gang_1"))
+    runtime.registry.apply_device_list(
+        "zigbee2mqtt",
+        [
+            {
+                "ieee_address": REPLACEMENT_IEEE,
+                "friendly_name": "Replacement",
+                "type": "Router",
+                "interview_completed": True,
+                "disabled": False,
+                "definition": load_fixture("gang_1"),
+            }
+        ],
+    )
+    runtime.registry.devices[IEEE].present = False
+
+    sources, targets = runtime.replacement_choices()
+
+    assert sources == {IEEE: f"Kitchen ({IEEE})"}
+    assert targets == {REPLACEMENT_IEEE: f"Replacement ({REPLACEMENT_IEEE})"}
+
+
+def test_reconcile_replacements_removes_transient_entities_and_device(
+    hass: HomeAssistant,
+    load_fixture: FixtureLoader,
+) -> None:
+    """Reload removes rows created before a replacement was configured."""
+    runtime, entry = _runtime(hass, load_fixture("gang_1"))
+    runtime.registry.replacements[REPLACEMENT_IEEE] = IEEE
+    entity_registry = er.async_get(hass)
+    stable = entity_registry.async_get_or_create(
+        "switch",
+        DOMAIN,
+        f"{IEEE}_state",
+        config_entry=entry,
+    )
+    transient = entity_registry.async_get_or_create(
+        "switch",
+        DOMAIN,
+        f"{REPLACEMENT_IEEE}_state",
+        config_entry=entry,
+    )
+    device_registry = dr.async_get(hass)
+    transient_device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, REPLACEMENT_IEEE)},
+    )
+
+    runtime.reconcile_replacement_entities()
+
+    assert entity_registry.async_get(stable.entity_id) is not None
+    assert entity_registry.async_get(transient.entity_id) is None
+    assert device_registry.async_get(transient_device.id) is None

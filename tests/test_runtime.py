@@ -4,10 +4,12 @@ import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.components.mqtt import ReceiveMessage
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import (  # type: ignore[import-untyped]
@@ -95,6 +97,63 @@ def test_reg_004_state_survives_registry_round_trip(
     restored = runtime.registry.from_dict(runtime.registry.to_dict())
 
     assert restored.devices[IEEE].state == {"smoke": True, "battery": 87}
+
+
+async def test_replacement_snapshot_subscribes_physical_route_to_logical_device(
+    hass: HomeAssistant,
+    load_fixture: FixtureLoader,
+) -> None:
+    """A replacement physical IEEE can publish through a changed route."""
+    replacement_ieee = "0x00124b0024fedcba"
+    definition = load_fixture("gang_1")
+    runtime = Z2MRuntime(hass, _entry())
+    _add_device(runtime, definition)
+    runtime.registry.apply_device_list("zigbee2mqtt", [])
+    runtime.registry.apply_device_list(
+        "zigbee2mqtt2",
+        [
+            {
+                "ieee_address": replacement_ieee,
+                "friendly_name": "Replacement switch",
+                "type": "Router",
+                "interview_completed": True,
+                "disabled": False,
+                "definition": definition,
+            }
+        ],
+    )
+    runtime.registry.replace_device(IEEE, replacement_ieee)
+    runtime.registry = runtime.registry.from_dict(runtime.registry.to_dict())
+    subscribe_route = AsyncMock()
+    runtime._async_subscribe_device_route = subscribe_route  # type: ignore[method-assign]
+    payload = [
+        {
+            "ieee_address": replacement_ieee,
+            "friendly_name": "Renamed replacement",
+            "type": "Router",
+            "interview_completed": True,
+            "disabled": False,
+            "definition": definition,
+        }
+    ]
+
+    await runtime._device_list_handler("zigbee2mqtt2")(
+        cast(
+            ReceiveMessage,
+            SimpleNamespace(
+                topic="zigbee2mqtt2/bridge/devices",
+                payload=json.dumps(payload),
+            ),
+        )
+    )
+
+    subscribe_route.assert_awaited_once_with(
+        "zigbee2mqtt2",
+        "Renamed replacement",
+    )
+    assert (
+        runtime.registry.ieee_for_route("zigbee2mqtt2", "Renamed replacement") == IEEE
+    )
 
 
 def test_rep_001_stale_device_creates_and_fresh_device_clears_repair(

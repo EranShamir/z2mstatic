@@ -21,6 +21,13 @@
   fresh device traffic; bridge availability controls entity availability.
 - **REG-005** Manual HA removal tombstones a missing IEEE; stale MQTT snapshots
   cannot recreate it, and an explicit options action can restore it.
+- **REG-006** Replacing an unavailable device with a present compatible IEEE
+  preserves the original logical device and entity unique IDs, moves state and
+  commands to the replacement route, and persists the alias across restart.
+- **REG-007** Replacement rejects present sources, absent targets, and targets
+  missing any existing property contract without mutating registry state.
+- **REG-008** Retired physical IEEE addresses cannot reclaim a replaced logical
+  identity; a later second replacement preserves the same logical identity.
 - **MQT-001** `bridge/devices` updates definitions and the active route by IEEE.
 - **MQT-002** State messages update entities and command entities publish the
   expose property to the active route's `/set` topic.
@@ -33,6 +40,8 @@
   orphaned `switch` registry entry for the same unique ID.
 - **ENT-002** Changing a switch/light override reconciles the obsolete registry
   domain on reload; the IEEE/property identity remains stable.
+- **ENT-003** Replacement reload removes transient entity/device registry rows
+  created for the new physical IEEE while retaining all stable logical rows.
 - **CMD-001** A normal control publishes one `/set` command.
 - **CMD-002** A reliable control publishes `/set`, waits for matching state,
   queries GET-capable exposes through `/get`, and retries up to three attempts.

@@ -17,6 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: Z2MConfigEntry) -> bool:
     runtime = Z2MRuntime(hass, entry)
     entry.runtime_data = runtime
     await runtime.async_start()
+    runtime.reconcile_replacement_entities()
     runtime.reconcile_entity_domains()
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

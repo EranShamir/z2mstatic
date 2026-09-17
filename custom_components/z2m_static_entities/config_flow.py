@@ -12,6 +12,8 @@ from .const import (
     CONF_BASE_TOPICS,
     CONF_LIGHT_ENTITIES,
     CONF_RELIABLE_ENTITIES,
+    CONF_REPLACE_FROM,
+    CONF_REPLACE_TO,
     CONF_RESTORE_DEVICES,
     CONF_STALE_DAYS,
     DEFAULT_STALE_DAYS,
@@ -36,6 +38,8 @@ def _schema(
     control_choices: dict[str, str] | None = None,
     light_entities: set[str] | None = None,
     reliable_entities: set[str] | None = None,
+    replacement_sources: dict[str, str] | None = None,
+    replacement_targets: dict[str, str] | None = None,
 ) -> vol.Schema:
     fields: dict[vol.Marker, Any] = {
         vol.Required(
@@ -64,6 +68,9 @@ def _schema(
                 default=sorted(reliable_entities or set()),
             )
         ] = cv.multi_select(control_choices)
+    if replacement_sources and replacement_targets:
+        fields[vol.Optional(CONF_REPLACE_FROM)] = vol.In(replacement_sources)
+        fields[vol.Optional(CONF_REPLACE_TO)] = vol.In(replacement_targets)
     return vol.Schema(fields)
 
 
@@ -121,21 +128,63 @@ class Z2MStaticEntitiesOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Update base topics and stale-device threshold."""
         errors: dict[str, str] = {}
+        replacement: tuple[str, str] | None = None
         if user_input is not None:
             topics = normalize_base_topics(user_input[CONF_BASE_TOPICS])
             if topics:
+                replace_from = user_input.get(CONF_REPLACE_FROM)
+                replace_to = user_input.get(CONF_REPLACE_TO)
+                if bool(replace_from) != bool(replace_to):
+                    errors["base"] = "replacement_pair_required"
+                elif replace_from and replace_to:
+                    try:
+                        self._entry.runtime_data.registry.replace_device(
+                            replace_from,
+                            replace_to,
+                        )
+                    except ValueError:
+                        errors["base"] = "replacement_invalid"
+                    else:
+                        replacement = (replace_from, replace_to)
+                if errors:
+                    return self._show_form(errors)
+
                 choices = self._rendered_control_choices()
                 current_lights = self._current_selection(CONF_LIGHT_ENTITIES)
                 current_reliable = self._current_selection(CONF_RELIABLE_ENTITIES)
+                submitted_lights = set(user_input.get(CONF_LIGHT_ENTITIES, []))
+                submitted_reliable = set(user_input.get(CONF_RELIABLE_ENTITIES, []))
+                if replacement is not None:
+                    old_ieee, replacement_ieee = replacement
+                    current_lights = _remap_entity_keys(
+                        current_lights,
+                        old_ieee,
+                        replacement_ieee,
+                    )
+                    current_reliable = _remap_entity_keys(
+                        current_reliable,
+                        old_ieee,
+                        replacement_ieee,
+                    )
+                    submitted_lights = _remap_entity_keys(
+                        submitted_lights,
+                        old_ieee,
+                        replacement_ieee,
+                    )
+                    submitted_reliable = _remap_entity_keys(
+                        submitted_reliable,
+                        old_ieee,
+                        replacement_ieee,
+                    )
                 light_entities = _merge_selection(
                     current_lights,
                     set(choices),
-                    set(user_input.get(CONF_LIGHT_ENTITIES, [])),
+                    submitted_lights,
                 )
                 reliable_entities = _merge_selection(
                     current_reliable,
                     set(choices),
-                    set(user_input.get(CONF_RELIABLE_ENTITIES, [])),
+                    submitted_reliable,
                 )
                 if self._entry.state is ConfigEntryState.LOADED:
                     runtime = self._entry.runtime_data
@@ -153,9 +202,17 @@ class Z2MStaticEntitiesOptionsFlow(config_entries.OptionsFlow):
                 )
             errors[CONF_BASE_TOPICS] = "base_topics_required"
 
+        return self._show_form(errors)
+
+    def _show_form(
+        self,
+        errors: dict[str, str],
+    ) -> config_entries.ConfigFlowResult:
+        """Show current options and one-shot device replacement choices."""
         choices = self._rendered_control_choices()
         light_entities = self._current_selection(CONF_LIGHT_ENTITIES)
         reliable_entities = self._current_selection(CONF_RELIABLE_ENTITIES)
+        replacement_sources, replacement_targets = self._replacement_choices()
         return self.async_show_form(
             step_id="init",
             data_schema=_schema(
@@ -171,6 +228,8 @@ class Z2MStaticEntitiesOptionsFlow(config_entries.OptionsFlow):
                 choices,
                 light_entities,
                 reliable_entities,
+                replacement_sources,
+                replacement_targets,
             ),
             errors=errors,
         )
@@ -187,6 +246,11 @@ class Z2MStaticEntitiesOptionsFlow(config_entries.OptionsFlow):
         if self._entry.state is not ConfigEntryState.LOADED:
             return {}
         return self._entry.runtime_data.control_choices()
+
+    def _replacement_choices(self) -> tuple[dict[str, str], dict[str, str]]:
+        if self._entry.state is not ConfigEntryState.LOADED:
+            return {}, {}
+        return self._entry.runtime_data.replacement_choices()
 
     def _rendered_control_choices(self) -> dict[str, str]:
         choices = self._control_choices()
@@ -218,3 +282,16 @@ def _sort_choices(choices: dict[str, str]) -> dict[str, str]:
             key=lambda item: (item[1].casefold(), item[0]),
         )
     )
+
+
+def _remap_entity_keys(
+    selections: set[str],
+    old_ieee: str,
+    replacement_ieee: str,
+) -> set[str]:
+    """Move transient replacement override keys to the stable logical IEEE."""
+    prefix = f"{replacement_ieee}|"
+    return {
+        f"{old_ieee}|{key.removeprefix(prefix)}" if key.startswith(prefix) else key
+        for key in selections
+    }
