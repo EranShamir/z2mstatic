@@ -16,6 +16,9 @@ device-removal responses, retained-message purges, and disappearance from
   replace a route learned from state traffic in the current Home Assistant
   session. Moving a device between configured instances therefore updates the
   route without replacing Home Assistant device or entity unique IDs.
+- Bridge and per-device availability support both plain and JSON Zigbee2MQTT
+  payload formats so a Z2M restart cannot falsely mark online devices
+  unavailable.
 - Definitions and routes persist across Home Assistant restarts. A missing
   device remains registered and unavailable until it reports again or the user
   explicitly removes it in Home Assistant.

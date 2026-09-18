@@ -36,6 +36,8 @@
   the session-authoritative route.
 - **MQT-004** Commands publish non-retained JSON to the active
   `<base>/<friendly_name>/set` topic and update only after matching state.
+- **MQT-005** Bridge and device availability accept both legacy plain
+  `online`/`offline` payloads and current JSON `{"state":"..."}` payloads.
 - **ENT-001** A light override creates a native `light` entity and no active or
   orphaned `switch` registry entry for the same unique ID.
 - **ENT-002** Changing a switch/light override reconciles the obsolete registry

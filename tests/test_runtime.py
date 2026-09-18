@@ -201,6 +201,38 @@ def test_bridge_offline_overrides_cached_device_availability(
     assert not runtime.is_available(record)
 
 
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ("online", True),
+        ("offline", False),
+        ('{"state":"online"}', True),
+        ('{"state":"offline"}', False),
+    ],
+)
+def test_device_availability_accepts_plain_and_json_payloads(
+    hass: HomeAssistant,
+    load_fixture: FixtureLoader,
+    payload: str,
+    expected: bool,
+) -> None:
+    """Z2M availability works across legacy plain and current JSON payloads."""
+    runtime = Z2MRuntime(hass, _entry())
+    _add_device(runtime, load_fixture("gang_1"))
+
+    runtime._availability_handler("zigbee2mqtt", "Kitchen switch")(
+        cast(
+            ReceiveMessage,
+            SimpleNamespace(
+                topic="zigbee2mqtt/Kitchen switch/availability",
+                payload=payload,
+            ),
+        )
+    )
+
+    assert runtime.registry.devices[IEEE].state["_availability"] is expected
+
+
 async def test_cmd_002_fast_matching_state_completes_without_get(
     hass: HomeAssistant,
     load_fixture: FixtureLoader,

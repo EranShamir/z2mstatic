@@ -49,6 +49,19 @@ type RuntimeListener = Callable[[], None]
 type CommandKey = tuple[str, str]
 
 
+def _availability_is_online(payload: Any) -> bool:
+    """Return whether a Z2M bridge or device availability payload is online."""
+    if not isinstance(payload, str):
+        return False
+    if payload == "online":
+        return True
+    try:
+        decoded = json.loads(payload)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(decoded, dict) and decoded.get("state") == "online"
+
+
 class RegistryStore(Store[dict[str, Any]]):
     """Versioned persistent registry store."""
 
@@ -277,20 +290,7 @@ class Z2MRuntime:
     ) -> Callable[[ReceiveMessage], None]:
         @callback
         def handle(msg: ReceiveMessage) -> None:
-            payload = msg.payload
-            online = False
-            if isinstance(payload, str):
-                if payload == "online":
-                    online = True
-                else:
-                    try:
-                        decoded = json.loads(payload)
-                    except json.JSONDecodeError:
-                        decoded = None
-                    online = (
-                        isinstance(decoded, dict) and decoded.get("state") == "online"
-                    )
-            self._bridge_online[base_topic] = online
+            self._bridge_online[base_topic] = _availability_is_online(msg.payload)
             self._notify()
 
         return handle
@@ -363,9 +363,9 @@ class Z2MRuntime:
             if ieee is None:
                 return
             record = self.registry.devices[ieee]
-            if isinstance(msg.payload, str):
-                record.state["_availability"] = msg.payload == "online"
-                self._notify()
+            record.state["_availability"] = _availability_is_online(msg.payload)
+            self.schedule_save()
+            self._notify()
 
         return handle
 
