@@ -47,6 +47,20 @@ _NUMERIC_DEVICE_CLASS_MAP: dict[str, str] = {
     "energy": "energy",
 }
 
+_BINARY_ENTITY_CATEGORY_MAP: dict[str, str] = {
+    "test": "diagnostic",
+}
+
+_ICON_MAP: dict[str, str] = {
+    "linkquality": "mdi:signal",
+    "test": "mdi:test-tube",
+}
+
+_NUMERIC_STATE_CLASS_MAP: dict[str, str] = {
+    "battery": "measurement",
+    "linkquality": "measurement",
+}
+
 # Property/endpoint keywords that mark a settable entity as a configuration
 # option rather than a primary control, regardless of which device model
 # exposes it or which JSON shape (raw binary vs. composite switch) was used.
@@ -64,6 +78,8 @@ class ExposedEntity:
     device_class: str | None = None
     entity_category: str | None = None
     unit: str | None = None
+    state_class: str | None = None
+    icon: str | None = None
     value_on: Any = None
     value_off: Any = None
     settable: bool = False
@@ -82,7 +98,9 @@ def _parse_binary(expose: dict[str, Any], endpoint: str | None) -> ExposedEntity
 
     domain = ("switch" if readable else "button") if settable else "binary_sensor"
 
-    entity_category = expose.get("category")
+    entity_category = expose.get("category") or _BINARY_ENTITY_CATEGORY_MAP.get(
+        property_
+    )
     if _is_config_keyword(property_, endpoint):
         entity_category = "config"
 
@@ -93,6 +111,7 @@ def _parse_binary(expose: dict[str, Any], endpoint: str | None) -> ExposedEntity
         endpoint=endpoint,
         device_class=_BINARY_DEVICE_CLASS_MAP.get(property_),
         entity_category=entity_category,
+        icon=_ICON_MAP.get(property_),
         value_on=expose.get("value_on", "ON"),
         value_off=expose.get("value_off", "OFF"),
         settable=settable,
@@ -118,6 +137,8 @@ def _parse_numeric(expose: dict[str, Any], endpoint: str | None) -> ExposedEntit
         device_class=_NUMERIC_DEVICE_CLASS_MAP.get(property_),
         entity_category=entity_category,
         unit=expose.get("unit"),
+        state_class=_NUMERIC_STATE_CLASS_MAP.get(property_),
+        icon=_ICON_MAP.get(property_),
         settable=settable,
         access=access,
     )

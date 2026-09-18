@@ -16,6 +16,8 @@ Zigbee2MQTT exposes without granting Zigbee2MQTT authority to delete them.
 - Backlight and child-lock switches are configuration entities; master switches
   remain primary controls.
 - Definitions, routes, and last state persist across HA restarts.
+- Battery and link-quality sensors expose measurement state classes so Home
+  Assistant can retain long-term statistics across discovery migration.
 - An unavailable device can be explicitly replaced by a compatible newly
   discovered IEEE while preserving the existing Home Assistant device/entity
   identity, names, icons, history, and light/reliable classifications.

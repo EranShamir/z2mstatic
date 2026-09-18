@@ -42,6 +42,11 @@
   domain on reload; the IEEE/property identity remains stable.
 - **ENT-003** Replacement reload removes transient entity/device registry rows
   created for the new physical IEEE while retaining all stable logical rows.
+- **ENT-004** Battery and link-quality sensors expose
+  `state_class: measurement`; link quality retains unit `lqi` and icon
+  `mdi:signal`.
+- **ENT-005** The smoke-detector test binary sensor is diagnostic and uses the
+  `mdi:test-tube` icon.
 - **CMD-001** A normal control publishes one `/set` command.
 - **CMD-002** A reliable control publishes `/set`, waits for matching state,
   queries GET-capable exposes through `/get`, and retries up to three attempts.

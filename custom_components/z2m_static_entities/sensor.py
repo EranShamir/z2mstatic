@@ -1,6 +1,10 @@
 """Sensor entities for Z2M Static Entities."""
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -24,6 +28,8 @@ class Z2MSensor(Z2MEntity, SensorEntity):
         self._attr_native_unit_of_measurement = description.unit
         if description.device_class is not None:
             self._attr_device_class = SensorDeviceClass(description.device_class)
+        if description.state_class is not None:
+            self._attr_state_class = SensorStateClass(description.state_class)
 
     @property
     def native_value(self) -> StateType:

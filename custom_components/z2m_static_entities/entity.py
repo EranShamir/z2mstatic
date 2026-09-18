@@ -27,6 +27,7 @@ class Z2MEntity(Entity):
         self.z2m_description = description
         self._attr_unique_id = f"{ieee}_{description.key}"
         self._attr_name = description.name
+        self._attr_icon = description.icon
         if description.entity_category is not None:
             self._attr_entity_category = EntityCategory(description.entity_category)
 

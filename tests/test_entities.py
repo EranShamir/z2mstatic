@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import (  # type: ignore[import-untyped]
@@ -103,6 +104,9 @@ def test_detector_entity_values(
 
     leak = Z2MBinarySensor(entry, IEEE, descriptions["water_leak"])
     battery = Z2MSensor(entry, IEEE, descriptions["battery"])
+    linkquality = Z2MSensor(entry, IEEE, descriptions["linkquality"])
 
     assert leak.is_on
     assert battery.native_value == 72
+    assert battery.state_class is SensorStateClass.MEASUREMENT
+    assert linkquality.icon == "mdi:signal"

@@ -274,6 +274,28 @@ def test_registry_round_trip_preserves_devices_and_tombstones(
     assert restored.to_dict() == registry.to_dict()
 
 
+def test_registry_restore_refreshes_parser_metadata(
+    load_fixture: FixtureLoader,
+) -> None:
+    """Stored records gain current parser metadata without losing identity."""
+    registry = DeviceRegistry()
+    registry.apply_device_list(
+        "zigbee2mqtt",
+        [_device(load_fixture("leak_detector"))],
+    )
+    stored = registry.to_dict()
+    entities = stored["devices"][IEEE]["entities"]
+    for entity in entities:
+        entity.pop("state_class", None)
+        entity.pop("icon", None)
+
+    restored = DeviceRegistry.from_dict(stored)
+    descriptions = {entity.key: entity for entity in restored.devices[IEEE].entities}
+
+    assert descriptions["battery"].state_class == "measurement"
+    assert descriptions["linkquality"].icon == "mdi:signal"
+
+
 async def test_store_v1_migration_rebuilds_access_flags(
     hass: HomeAssistant,
     load_fixture: FixtureLoader,

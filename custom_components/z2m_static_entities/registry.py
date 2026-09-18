@@ -40,6 +40,17 @@ class DeviceRecord:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DeviceRecord:
         """Restore a record from Home Assistant storage."""
+        stored_entities = [
+            ExposedEntity(
+                **{
+                    key: value
+                    for key, value in entity.items()
+                    if key in _EXPOSED_ENTITY_FIELDS
+                }
+            )
+            for entity in data["entities"]
+        ]
+        current_entities = parse_exposes({"exposes": data["exposes"]})
         return cls(
             ieee_address=data["ieee_address"],
             friendly_name=data["friendly_name"],
@@ -48,16 +59,7 @@ class DeviceRecord:
             vendor=data["vendor"],
             description=data["description"],
             exposes=data["exposes"],
-            entities=[
-                ExposedEntity(
-                    **{
-                        key: value
-                        for key, value in entity.items()
-                        if key in _EXPOSED_ENTITY_FIELDS
-                    }
-                )
-                for entity in data["entities"]
-            ],
+            entities=_merge_entities(stored_entities, current_entities),
             first_seen=datetime.fromisoformat(data["first_seen"]),
             last_seen=(
                 datetime.fromisoformat(data["last_seen"])

@@ -2942,7 +2942,7 @@ wheels = [
 
 [[package]]
 name = "z2m-static-entities"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 
 [package.dev-dependencies]

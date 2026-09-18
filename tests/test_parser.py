@@ -139,9 +139,12 @@ def test_leak_detector_mapping(load_fixture: FixtureLoader) -> None:
     assert entities["battery"].domain == "sensor"
     assert entities["battery"].device_class == "battery"
     assert entities["battery"].unit == "%"
+    assert entities["battery"].state_class == "measurement"
     assert entities["battery"].entity_category == "diagnostic"
     assert entities["tamper"].device_class == "tamper"
     assert entities["linkquality"].entity_category == "diagnostic"
+    assert entities["linkquality"].state_class == "measurement"
+    assert entities["linkquality"].icon == "mdi:signal"
 
 
 def test_smoke_detector_mapping(load_fixture: FixtureLoader) -> None:
@@ -162,6 +165,8 @@ def test_smoke_detector_mapping(load_fixture: FixtureLoader) -> None:
     assert entities["silence"].domain == "switch"
     assert entities["silence"].settable
     assert entities["test"].domain == "binary_sensor"
+    assert entities["test"].entity_category == "diagnostic"
+    assert entities["test"].icon == "mdi:test-tube"
     assert entities["smoke_concentration"].unit == "ppm"
     assert entities["device_fault"].device_class == "problem"
     assert entities["linkquality"].entity_category == "diagnostic"

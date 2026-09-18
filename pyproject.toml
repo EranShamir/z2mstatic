@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "z2m-static-entities"
-version = "0.3.0"
+version = "0.3.1"
 description = "Home Assistant integration that creates static entities/devices from Zigbee2MQTT exposes, immune to Z2M-side deletions"
 requires-python = ">=3.14.2"
 dependencies = []

@@ -130,6 +130,9 @@ async def test_mqtt_discovery_creates_stable_device_entities_and_state(
     assert state.state == "on"
     assert backlight.state == "on"
     assert linkquality.state == "144"
+    assert linkquality.attributes["state_class"] == "measurement"
+    assert linkquality.attributes["unit_of_measurement"] == "lqi"
+    assert linkquality_entry.original_icon == "mdi:signal"
     assert backlight_entry.entity_category == "config"
 
     device_registry = dr.async_get(hass)
