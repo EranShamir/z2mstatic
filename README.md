@@ -26,10 +26,11 @@ Zigbee2MQTT exposes without granting Zigbee2MQTT authority to delete them.
 
 ## Development
 
-The integration is mounted into the local hacore devcontainer from:
+The integration is mounted into the local hacore devcontainer from this
+repository's:
 
 ```text
-~/sources/z2m_static_entities/custom_components/z2m_static_entities
+custom_components/z2m_static_entities
 ```
 
 Dependency and validation commands use uv:
